@@ -15,11 +15,12 @@ import { catchError } from 'rxjs';
 import { PaginationDto } from 'src/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { PRODUCTS_MICROSERVICE } from 'src/config';
 
 @Controller('products')
 export class ProductsController {
 	constructor(
-		@Inject('PRODUCT_SERVICE') private readonly productsClient: ClientProxy
+		@Inject(PRODUCTS_MICROSERVICE) private readonly productsClient: ClientProxy
 	) { }
 
 	@Post()
