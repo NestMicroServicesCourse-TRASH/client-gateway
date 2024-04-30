@@ -1,9 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Inject, ParseIntPipe, Query } from '@nestjs/common';
-import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
-import { ClientProxy } from '@nestjs/microservices';
-import { PaginationDto } from 'src/common';
+import { Controller, Get, Post, Body, Param, Inject, Query, ParseUUIDPipe, Patch } from '@nestjs/common';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { ORDERS_MICROSERVICE } from 'src/config';
+import { catchError } from 'rxjs';
+import { CreateOrderDto, OrderPaginationDto, StatusOrderDto } from './dto';
+import { PaginationDto } from 'src/common';
 
 @Controller('orders')
 export class OrdersController {
@@ -17,21 +17,41 @@ export class OrdersController {
 	}
 
 	@Get()
-	getOrders(@Query() paginationDto: PaginationDto) {
-		return this.ordersClient.send('getOrders', paginationDto);
+	getOrders(@Query() orderPaginationDto: OrderPaginationDto) {
+		return this.ordersClient.send('getOrders', orderPaginationDto);
 	}
 
-	@Get(':id')
-	getOrder(@Param('id', ParseIntPipe) id: number) {
-		return this.ordersClient.send('getOrder', id);
+	@Get('id/:id')
+	getOrder(@Param('id', ParseUUIDPipe) id: string) {
+		return this.ordersClient.send('getOrder', id)
+			.pipe(
+				catchError(error => { throw new RpcException(error) })
+			)
+	}
+
+	@Get(':status')
+	getOrderByStatus(
+		@Param() statusOrderDto: StatusOrderDto,
+		@Query() paginationDto: PaginationDto
+	) {
+
+		return this.ordersClient.send('getOrders', {
+			...paginationDto,
+			status: statusOrderDto.status
+		})
+			.pipe(
+				catchError(error => { throw new RpcException(error) })
+			)
 	}
 
 	@Patch(':id')
-	updateOrderStatus(@Param('id', ParseIntPipe) id: number, @Body() updateOrderDto: UpdateOrderDto) {
-		return this.ordersClient.send('updateOrderStatus', {
-			id,
-			...updateOrderDto
-		});
+	updateOrderStatus(
+		@Param('id', ParseUUIDPipe) id: string,
+		@Body() statusOrderDto: StatusOrderDto
+	) {
+		return this.ordersClient.send('updateOrderStatus', { id, status: statusOrderDto.status })
+			.pipe(
+				catchError(error => { throw new RpcException(error) })
+			)
 	}
-
 }
